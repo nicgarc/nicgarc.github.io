@@ -1,6 +1,6 @@
 ---
 title: "Hack The Box - Access"
-excerpt: "<img src='/images/cover-htb-access.webp' width='500' height=auto><br/>Access is an 'Easy' difficulty machine, that highlights how machines associated with the physical security of an environment may not themselves be secure. Also highlighted is how accessible FTP/file shares can often lead to getting a foothold or lateral movement. It teaches techniques for identifying and exploiting saved credentials."
+excerpt: "<img src='/images/portfolio/access/cover.webp' width='500' height=auto><br/>Access is an 'Easy' difficulty machine, that highlights how machines associated with the physical security of an environment may not themselves be secure. Also highlighted is how accessible FTP/file shares can often lead to getting a foothold or lateral movement. It teaches techniques for identifying and exploiting saved credentials."
 collection: portfolio
 ---
 
@@ -47,4 +47,31 @@ Utilizando la herramienta nmap para escaneo de puertos y servicios.<br/>
 HTTP
 ------
 
-This is an item in your portfolio. It can be have images or nice text. If you name the file .md, it will be parsed as markdown. If you name the file .html, it will be parsed as HTML. 
+Si trato de conectarme a la máquina a través del puerto 80 desde el navegador obtengo lo siguiente.<br/>
+<img src='/images/portfolio/access/http.png' width='700' height=auto><br/>
+Intento obtener algo interesante a través de la herramienta 'gobuster' la cual me permite enumerar archivos y directorios dentro del sitio web.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# gobuster dir --url http://10.10.10.98/ --wordlist /usr/share/wordlists/dirb/common.txt
+    ===============================================================
+    Gobuster v3.6
+    by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+    ===============================================================
+    [+] Url:                     http://10.10.10.98/
+    [+] Method:                  GET
+    [+] Threads:                 10
+    [+] Wordlist:                /usr/share/wordlists/dirb/common.txt
+    [+] Negative Status codes:   404
+    [+] User Agent:              gobuster/3.6
+    [+] Timeout:                 10s
+    ===============================================================
+    Starting gobuster in directory enumeration mode
+    ===============================================================
+    /aspnet_client        (Status: 301) [Size: 156] [--> http://10.10.10.98/aspnet_client/]
+    /index.html           (Status: 200) [Size: 391]
+    Progress: 4614 / 4615 (99.98%)
+    ===============================================================
+    Finished
+    ===============================================================
+    
+<br/>Solo consigo encontrar la ruta /index.html por lo que no parece que haya nada interesante respecto al sitio web.
