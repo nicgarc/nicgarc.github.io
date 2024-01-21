@@ -89,7 +89,7 @@ Obtengo un directorio llamado 'support' el cual procederé a analizar mediante e
 HelpDeskZ
 ------
 
-<img src='/images/portfolio/help/support.png' width='900' height=auto><br/><br/>
+<br/><img src='/images/portfolio/help/support.png' width='900' height=auto><br/><br/>
 Resulta que esta dirección alberga un sistema de soporte llamado 'HelpDeskZ'. Pasándole la dirección a gobuster obtengo la siguiente salida<br/>
 
     ┌──(root㉿kali)-[/home/nico/htb]
@@ -166,9 +166,9 @@ Para tratar de conseguir escalar privilegios, enumeré cierta información sobre
     uname -r
     4.4.0-116-generic
 
-<br/><br/>
+<br/>
 
-<img src='/images/portfolio/help/searchsploit.png' width='900' height=auto><br/><br/>
+<img src='/images/portfolio/help/searchsploit.png' width='900' height=auto><br/>
 
 Procedí a copiar el exploit a mi directorio de trabajo y arranqué un servidor HTTP para descargar el exploit desde el reverse shell.<br/>
 
