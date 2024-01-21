@@ -7,7 +7,7 @@ collection: portfolio
 NMAP
 ------
 
-Utilizando la herramienta nmap para escaneo de puertos y servicios.<br/>
+Utilizo la herramienta nmap para escaneo de puertos y servicios.<br/>
 
     ┌──(root㉿kali)-[/home/nico/htb]
     └─# nmap -A 10.10.10.98
