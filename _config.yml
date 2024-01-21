@@ -10,7 +10,7 @@ locale                   : "es-ES"
 title                    : "Nicolás García Núñez / Portfolio"
 title_separator          : "-"
 name                     : &name "Nicolás García Núñez"
-description              : &description "Ciberseguridad"
+description              : &description "Ciberseguridad, Junior"
 url                      : https://nicgarc.github.io/ # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
 repository               : "nicgarc/nicgarc.github.io"
@@ -82,8 +82,8 @@ analytics:
 author:
   name             : "Nicolás García Núñez"
   avatar           : "profile-pic.jpg"
-  bio              : "Ciberseguridad"
-  location         : "Valladolid, España"
+  bio              : "Ciberseguridad, Junior"
+  location         : "Valladolid, Castilla y León, España"
   employer         :
   pubmed           : 
   googlescholar    : 
