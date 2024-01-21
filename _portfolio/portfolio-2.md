@@ -166,8 +166,6 @@ Para tratar de conseguir escalar privilegios, enumeré cierta información sobre
     uname -r
     4.4.0-116-generic
 
-<br/>
-
 <img src='/images/portfolio/help/searchsploit.png' width='900' height=auto><br/>
 
 Procedí a copiar el exploit a mi directorio de trabajo y arranqué un servidor HTTP para descargar el exploit desde el reverse shell.<br/>
