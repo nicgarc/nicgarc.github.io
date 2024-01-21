@@ -47,8 +47,8 @@ Utilizando la herramienta nmap para escaneo de puertos y servicios.<br/>
 HTTP
 ------
 
-Si trato de conectarme a la máquina a través del puerto 80 desde el navegador obtengo lo siguiente.<br/>
-<img src='/images/portfolio/access/http.png' width='700' height=auto><br/>
+Si trato de conectarme a la máquina a través del puerto 80 desde el navegador obtengo lo siguiente.<br/><br/>
+<img src='/images/portfolio/access/http.png' width='700' height=auto><br/><br/>
 Intento obtener algo interesante a través de la herramienta 'gobuster' la cual me permite enumerar archivos y directorios dentro del sitio web.<br/>
 
     ┌──(root㉿kali)-[/home/nico/htb]
@@ -74,4 +74,4 @@ Intento obtener algo interesante a través de la herramienta 'gobuster' la cual 
     Finished
     ===============================================================
     
-<br/>Solo consigo encontrar la ruta /index.html por lo que no parece que haya nada interesante respecto al sitio web.
+Solo consigo encontrar la ruta /index.html por lo que no parece que haya nada interesante respecto al sitio web.
