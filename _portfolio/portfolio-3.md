@@ -75,7 +75,7 @@ Utilizo la herramienta nmap para escaneo de puertos y servicios.<br/>
 SAMBA
 ------
 
-En cuanto a samba, no parece que haya nada interesante, solo alberga dos directorios privados.</br>
+En cuanto a samba, no parece que haya nada interesante, solo alberga dos directorios privados.<br/>
 
     ┌──(root㉿kali)-[/home/nico/htb]
     └─# smbclient -L 10.10.10.111
@@ -193,29 +193,104 @@ Analizando la ruta /admin con Burpsuite, observo que dentro hay un fichero de lo
 
 Como puede verse, hay una comprobación de credenciales en texto plano 'admin:superduperlooperpassword_lol'. Si trato de acceder a la ruta /admin ahora si consigo acceso. La dirección me devuelve lo siguiente.<br/>
 
-    ..... ..... ..... .!?!! .?... ..... ..... ...?. ?!.?. ..... ..... .....
-    ..... ..... ..!.? ..... ..... .!?!! .?... ..... ..?.? !.?.. ..... .....
-    ....! ..... ..... .!.?. ..... .!?!! .?!!! !!!?. ?!.?! !!!!! !...! .....
-    ..... .!.!! !!!!! !!!!! !!!.? ..... ..... ..... ..!?! !.?!! !!!!! !!!!!
-    !!!!? .?!.? !!!!! !!!!! !!!!! .?... ..... ..... ....! ?!!.? ..... .....
-    ..... .?.?! .?... ..... ..... ...!. !!!!! !!.?. ..... .!?!! .?... ...?.
-    ?!.?. ..... ..!.? ..... ..!?! !.?!! !!!!? .?!.? !!!!! !!!!. ?.... .....
-    ..... ...!? !!.?! !!!!! !!!!! !!!!! ?.?!. ?!!!! !!!!! !!.?. ..... .....
-    ..... .!?!! .?... ..... ..... ...?. ?!.?. ..... !.... ..... ..!.! !!!!!
-    !.!!! !!... ..... ..... ....! .?... ..... ..... ....! ?!!.? !!!!! !!!!!
-    !!!!! !?.?! .?!!! !!!!! !!!!! !!!!! !!!!! .?... ....! ?!!.? ..... .?.?!
-    .?... ..... ....! .?... ..... ..... ..!?! !.?.. ..... ..... ..?.? !.?..
-    !.?.. ..... ..!?! !.?.. ..... .?.?! .?... .!.?. ..... .!?!! .?!!! !!!?.
-    ?!.?! !!!!! !!!!! !!... ..... ...!. ?.... ..... !?!!. ?!!!! !!!!? .?!.?
-    !!!!! !!!!! !!!.? ..... ..!?! !.?!! !!!!? .?!.? !!!.! !!!!! !!!!! !!!!!
-    !.... ..... ..... ..... !.!.? ..... ..... .!?!! .?!!! !!!!! !!?.? !.?!!
-    !.?.. ..... ....! ?!!.? ..... ..... ?.?!. ?.... ..... ..... ..!.. .....
-    ..... .!.?. ..... ...!? !!.?! !!!!! !!?.? !.?!! !!!.? ..... ..!?! !.?!!
-    !!!!? .?!.? !!!!! !!.?. ..... ...!? !!.?. ..... ..?.? !.?.. !.!!! !!!!!
-    !!!!! !!!!! !.?.. ..... ..!?! !.?.. ..... .?.?! .?... .!.?. ..... .....
-    ..... .!?!! .?!!! !!!!! !!!!! !!!?. ?!.?! !!!!! !!!!! !!.!! !!!!! .....
-    ..!.! !!!!! !.?.
+<img src='/images/portfolio/frolic/encr_1.png' width='900' height=auto><br/><br/>
 
+Parece un mensaje que ha sido encriptado, voy a utilizar ook-language (https://www.dcode.fr/ook-language) para tratar de desencriptarlo.<br/>
+
+<img src='/images/portfolio/frolic/inp_ecnr_1.png' width='900' height=auto><br/>
+
+<img src='/images/portfolio/frolic/result_ecnr_1.png' width='900' height=auto><br/><br/>
+
+Obtengo como pista que acceda a la ruta '/asdiSIAJJ0QWE9JAS'. Accedo y me encuentro lo que parece ser otro mensaje encriptado.<br/>
+
+<img src='/images/portfolio/frolic/encr_2.png' width='900' height=auto><br/><br/>
+
+Me doy cuenta de que se trata de un archivo codificado en base64. Voy a generar un fichero a partir de este mensaje a ver que consigo.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# echo "UEsDBBQACQAIAMOJN00j/lsUsAAAAGkCAAAJABwAaW5kZXgucGhwVVQJAAOFfKdbhXynW3V4CwABBAAAAAAEAAAAAF5E5hBKn3OyaIopmhuVUPBuC6m/U3PkAkp3GhHcjuWgNOL22Y9r7nrQEopVyJbsK1i6f+BQyOES4baHpOrQu+J4XxPATolb/Y2EU6rqOPKD8uIPkUoyU8cqgwNE0I19kzhkVA5RAmveEMrX4+T7al+fi/kY6ZTAJ3h/Y5DCFt2PdL6yNzVRrAuaigMOlRBrAyw0tdliKb40RrXpBgn/uoTjlurp78cmcTJviFfUnOM5UEsHCCP+WxSwAAAAaQIAAFBLAQIeAxQACQAIAMOJN00j/lsUsAAAAGkCAAAJABgAAAAAAAEAAACkgQAAAABpbmRleC5waHBVVAUAA4V8p1t1eAsAAQQAAAAABAAAAABQSwUGAAAAAAEAAQBPAAAAAwEAAAAA" | base64 -d > file.txt                                                
+                                                                                                                                                                
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# file file.txt
+    file.txt: Zip archive data, at least v2.0 to extract, compression method=deflate
+                                                                                                                                                                
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# mv file.txt file.zip
+
+Resulta que se trata de un fichero .zip protegido con contraseña. Voy a tratar de romper la contraseña con 'zip2john' que ya utilicé en otro proyecto. La contraseña que obtengo con 'john' es 'password'.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# zip2john file.zip > hash.txt
+    ver 2.0 efh 5455 efh 7875 file.zip/index.php PKZIP Encr: TS_chk, cmplen=176, decmplen=617, crc=145BFE23 ts=89C3 cs=89c3 type=8
+                                                                                                                                                                
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# john --wordlist=/usr/share/wordlists/rockyou.txt hash.txt
+    Using default input encoding: UTF-8
+    Loaded 1 password hash (PKZIP [32/64])
+    No password hashes left to crack (see FAQ)
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# john hash.txt --show                                                    
+    file.zip/index.php:password:index.php:file.zip::file.zip
+
+Al descomprimir el fichero, obtengo un fichero llamado 'index.php'.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# 7z x file.zip
+
+    7-Zip [64] 16.02 : Copyright (c) 1999-2016 Igor Pavlov : 2016-05-21
+    p7zip Version 16.02 (locale=es_ES.UTF-8,Utf16=on,HugeFiles=on,64 bits,12 CPUs Intel(R) Core(TM) i7-10710U CPU @ 1.10GHz (A0660),ASM,AES-NI)
+
+    Scanning the drive for archives:
+    1 file, 360 bytes (1 KiB)
+
+    Extracting archive: file.zip
+    --
+    Path = file.zip
+    Type = zip
+    Physical Size = 360
+
+        
+    Enter password (will not be echoed):
+    Everything is Ok
+
+    Size:       617
+    Compressed: 360
+                                                                                                                                                                
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# ll
+    total 12
+    -rw-r--r-- 1 root root  360 ene 22 16:05 file.zip
+    -rw-r--r-- 1 root root  617 sep 23  2018 index.php
+    drwxr-xr-x 2 nico nico 4096 ene 20 11:55 vpn
+
+Si imprimo el contenido del fichero .php obtengo lo que parece ser otro mensaje codificado, esta vez en hexadecimal.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# cat index.php 
+    4b7973724b7973674b7973724b7973675779302b4b7973674b7973724b7973674b79737250463067506973724b7973674b7934744c5330674c5330754b7973674b7973724b7973674c6a77720d0a4b7973675779302b4b7973674b7a78645069734b4b797375504373674b7974624c5434674c53307450463067506930744c5330674c5330754c5330674c5330744c5330674c6a77724b7973670d0a4b317374506973674b79737250463067506973724b793467504373724b3173674c5434744c53304b5046302b4c5330674c6a77724b7973675779302b4b7973674b7a7864506973674c6930740d0a4c533467504373724b3173674c5434744c5330675046302b4c5330674c5330744c533467504373724b7973675779302b4b7973674b7973385854344b4b7973754c6a776743673d3d0d0a
+
+Al convertirlo a texto plano, consigo otro mensaje en base64.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# echo "4b7973724b7973674b7973724b7973675779302b4b7973674b7973724b7973674b79737250463067506973724b7973674b7934744c5330674c5330754b7973674b7973724b7973674c6a77720d0a4b7973675779302b4b7973674b7a78645069734b4b797375504373674b7974624c5434674c53307450463067506930744c5330674c5330754c5330674c5330744c5330674c6a77724b7973670d0a4b317374506973674b79737250463067506973724b793467504373724b3173674c5434744c53304b5046302b4c5330674c6a77724b7973675779302b4b7973674b7a7864506973674c6930740d0a4c533467504373724b3173674c5434744c5330675046302b4c5330674c5330744c533467504373724b7973675779302b4b7973674b7973385854344b4b7973754c6a776743673d3d0d0a" | xxd -r -p
+    KysrKysgKysrKysgWy0+KysgKysrKysgKysrPF0gPisrKysgKy4tLS0gLS0uKysgKysrKysgLjwr
+    KysgWy0+KysgKzxdPisKKysuPCsgKytbLT4gLS0tPF0gPi0tLS0gLS0uLS0gLS0tLS0gLjwrKysg
+    K1stPisgKysrPF0gPisrKy4gPCsrK1sgLT4tLS0KPF0+LS0gLjwrKysgWy0+KysgKzxdPisgLi0t
+    LS4gPCsrK1sgLT4tLS0gPF0+LS0gLS0tLS4gPCsrKysgWy0+KysgKys8XT4KKysuLjwgCg==
+
+Una vez que decodifico el mensaje en base64, obtengo un mensaje encriptado que pasaré por la página web anterior, esta vez en un lenguaje llamado 'brainf*ck'.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# echo "KysrKysgKysrKysgWy0+KysgKysrKysgKysrPF0gPisrKysgKy4tLS0gLS0uKysgKysrKysgLjwrKysgWy0+KysgKzxdPisKKysuPCsgKytbLT4gLS0tPF0gPi0tLS0gLS0uLS0gLS0tLS0gLjwrKysgK1stPisgKysrPF0gPisrKy4gPCsrK1sgLT4tLS0KPF0+LS0gLjwrKysgWy0+KysgKzxdPisgLi0tLS4gPCsrK1sgLT4tLS0gPF0+LS0gLS0tLS4gPCsrKysgWy0+KysgKys8XT4KKysuLjwgCg==" | base64 -d
+    +++++ +++++ [->++ +++++ +++<] >++++ +.--- --.++ +++++ .<+++ [->++ +<]>+
+    ++.<+ ++[-> ---<] >---- --.-- ----- .<+++ +[->+ +++<] >+++. <+++[ ->---
+    <]>-- .<+++ [->++ +<]>+ .---. <+++[ ->--- <]>-- ----. <++++ [->++ ++<]>
+    ++..<
+
+<img src='/images/portfolio/frolic/inp_ecnr_3.png' width='900' height=auto><br/>
+
+<img src='/images/portfolio/frolic/result_ecnr_3.png' width='900' height=auto><br/><br/>
 
 Metasploit
 ------
