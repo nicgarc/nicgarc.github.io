@@ -9,7 +9,7 @@ redirect_from:
 
 🧑🏻‍💻 Soy un estudiante de último año del Grado de Ingeniería Informática en la Universidad de Valladolid.
 
-📚 Actualmente me encuentro realizando el Trabajo de Fin de Grado y en búsqueda de una empresa con la que realizar las prácticas.
+📚 Actualmente me encuentro realizando el Trabajo de Fin de Grado y realizando prácticas de empresa en Fundación CIDAUT (Valladolid, España).
 
 🔒 Quiero dedicarme profesionalmente al área de la Ciberseguridad.
 
